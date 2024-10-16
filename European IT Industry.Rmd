@@ -1,0 +1,243 @@
+---
+title: "Assignment 3 _21967657"
+output: html_notebook
+---
+
+Load libraries
+```{r}
+library(readr)
+library(dplyr)
+library(tibble)
+library(stringr)
+library(tidyverse)
+library(ggplot2)
+library(readxl)
+library(tidyr)
+library(tools)
+```
+
+ 
+Task 1
+```{r}
+library(readr)
+# Import demographic data
+demographic_data <- read.csv("survey_employee_demographics.csv", na=c("","NA"))
+demographic_data
+
+# Import employment data
+employment_data <- read_excel("survey_employee_employment_details.xlsx", na=c("","NA"))
+employment_data
+
+# Check the structure of the imported data frames
+str(demographic_data)
+str(employment_data)
+
+# Merge the data frames based on a common column
+merged_data <- merge(demographic_data,employment_data, by = "RecordID", all = TRUE)
+merged_data
+
+```
+
+Task 2
+```{r}
+summary(merged_data)
+```
+Write at least two observations based on the summary output of the data
+
+1.The age column ranges from a minimum value of 20 to a maximum value of 69, indicating the age distribution of the survey respondents.There are 27 missing values in the age column, suggesting potential issues with data completeness in this variable.
+
+2.Annual Brutto Salary: The YearlyBruttoSalaryInEUR column shows a wide range of values, with the minimum salary being €10,000 and the maximum reaching an unexpectedly high value of €100 billion. However, there seems to be a data entry issue or outliers, as the mean salary is €80.28 million, which is not realistic. Additionally, there are 368 missing values in this column, which could impact salary-related analyses. Further investigation and potential data cleaning are necessary to address these anomalies.
+
+If necessary, clean the data, rename the columns, and correct data types of the 
+columns to assist with analysis.
+```{r}
+
+
+# Rename columns
+
+colnames(merged_data) <- c("RecordID", "Age", "Gender", "City", "Position", "TotalYearsOfExperience", "YearsOfExperienceInGermany", "SeniorityLevel", "MainProgrammingLanguage", "OtherProgrammingLanguages", "AnnualSalaryEUR", "AnnualBonusAndStocksEUR", "AnnualSalaryOneYearAgo", "AnnualBonusStocksOneYearAgo", "NumberOfVacationDays", "EmploymentStatus", "ContractDuration", "MainLanguageAtWork", "CompanySize", "CompanyType", "JobLossDueToCovid", "ShorterWorkingWeekHours", "AdditionalSupportDueToWFH")
+colnames(merged_data)
+
+# Correct data types
+
+merged_data$Age <- as.integer(merged_data$Age)
+merged_data$TotalYearsOfExperience <- as.integer(merged_data$TotalYearsOfExperience)
+merged_data$YearsOfExperienceInGermany <- as.integer(merged_data$YearsOfExperienceInGermany)
+merged_data$AnnualSalaryEUR <- as.numeric(merged_data$AnnualSalaryEUR)
+merged_data$AnnualBonusAndStocksEUR <- as.numeric(merged_data$AnnualBonusAndStocksEUR)
+merged_data$AnnualSalaryOneYearAgo <- as.numeric(merged_data$AnnualSalaryOneYearAgo)
+merged_data$AnnualBonusStocksOneYearAgo <- as.numeric(merged_data$AnnualBonusStocksOneYearAgo)
+merged_data$NumberOfVacationDays <- as.integer(merged_data$NumberOfVacationDays)
+merged_data$ShorterWorkingWeekHours <- as.integer(merged_data$ShorterWorkingWeekHours)
+merged_data$AdditionalSupportDueToWFH <- as.numeric(merged_data$AdditionalSupportDueToWFH)
+merged_data
+
+
+# Identify and handle outliers (e.g., remove unrealistic salary values)
+
+salary_threshold <- 400000  
+
+merged_data <- merged_data %>%
+  filter(AnnualSalaryOneYearAgo < salary_threshold | is.na(AnnualSalaryOneYearAgo),
+        AnnualBonusStocksOneYearAgo < salary_threshold | is.na(AnnualBonusStocksOneYearAgo),
+         AnnualSalaryEUR < salary_threshold | is.na(AnnualSalaryEUR),
+         AnnualBonusAndStocksEUR < salary_threshold | is.na(AnnualBonusAndStocksEUR))
+
+summary(merged_data)
+merged_data
+
+
+
+
+
+```
+Task 3
+
+```{r}
+library(ggplot2)
+
+# Visualization 1: Histogram
+ggplot(merged_data, aes(x = AnnualSalaryEUR)) +
+  geom_histogram(binwidth = 5000, fill = "green", color = "black", alpha = 0.7) +
+  labs(title = "Distribution of Yearly Brutto Salary in EUR", x = "Yearly Brutto Salary (EUR)", y = "Frequency") +
+ theme_minimal()
+
+# Visualization 2: Box Plot
+ggplot(merged_data, aes(y=AnnualSalaryEUR)) +
+  geom_boxplot(fill="lightgreen", color="black") +
+  labs(title="Box Plot of Salary among IT Professionals",
+       y="Salary (EUR)")
+
+
+```
+Task 4
+
+```{r}
+library(ggplot2)
+
+# Remove rows with missing values in Gender
+cleaned_data <- merged_data %>%
+  filter(!is.na(Gender))
+# Verify that there are no missing values in the Gender column
+sum(is.na(cleaned_data$Gender))
+
+# Box Plot
+ggplot(cleaned_data, aes(x=Gender, y=AnnualSalaryEUR)) +
+  geom_boxplot(fill="green", color="black") +
+  labs(title="Relationship between Gender and Salary",
+       x="Gender", y="Salary (EUR)")
+
+# Bar plot to compare average salary by gender
+ggplot(cleaned_data, aes(x = Gender, y = AnnualSalaryEUR)) +
+           stat_summary(fun = mean, geom = "bar", fill = "green", color = "black") +
+           labs(title = "Average Salary by Gender",
+                x = "Gender",
+                y = "Average Yearly Brutto Salary (EUR)")+
+  theme_minimal()
+
+```
+Task 5
+
+```{r}
+
+1. # Identify and handle outliers (e.g., remove unrealistic total year experience)
+summary(merged_data$total_years_experience)
+
+total_experiance_threshold <- 100  # Setting a threshold of 100 years for total experiance
+
+filter_total_ex <- merged_data %>%
+  filter(TotalYearsOfExperience < total_experiance_threshold | is.na(TotalYearsOfExperience))
+
+# Remove rows with missing values in total year experience
+filter_total_ex<- filter_total_ex %>%
+  filter(!is.na(TotalYearsOfExperience))
+
+summary(filter_total_ex$TotalYearsOfExperience)
+
+# Visualizing the impact of years of experience on salary
+ggplot(filter_total_ex, aes(x=TotalYearsOfExperience, y=AnnualSalaryEUR)) +
+  geom_point(alpha=0.7) +
+  geom_smooth(method="lm", se=FALSE, color="green") +
+  labs(title="Impact of Years of Experience on Salary",
+       x="Years of Experience", y="Salary (EUR)")
+
+2. # Visualizing the impact of programming languages proficiency on salary
+
+# Remove rows with missing values in MainProgrammingLanguage
+cleaned_data <- merged_data %>%
+  filter(!is.na(MainProgrammingLanguage))
+# Verify that there are no missing values in the MainProgrammingLanguage column
+sum(is.na(cleaned_data$MainProgrammingLanguage))
+
+# Summarize the data to get the average salary for each Main programming language
+cleaned_data<- cleaned_data %>%
+  group_by(MainProgrammingLanguage) %>%
+  summarise(AverageSalary = mean(AnnualSalaryEUR, na.rm = TRUE))%>% arrange(desc(AverageSalary)) %>% slice(1:10)
+
+
+# Print the top 10 levels
+cleaned_data
+
+bar_Languages <- ggplot(data = cleaned_data, aes(x = reorder(MainProgrammingLanguage, AverageSalary), y = AverageSalary, fill = MainProgrammingLanguage)) +
+  geom_bar(stat = "identity") +
+  labs(x = "MainProgrammingLanguage", y = "Salary(EUR)", fill = "MainProgrammingLanguage") +
+  ggtitle("Impact of MainProgrammingLanguage on Average Income") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + coord_flip()
+  theme_minimal()
+
+print(bar_Languages)
+
+
+3.  # Visualizing the impact of contract duration on salary
+
+# Remove rows with missing values in Contract Duration
+filter_contract_duration <- merged_data %>%
+  filter(!is.na(ContractDuration))
+
+filter_contract_duration <- filter_contract_duration %>% filter(ContractDuration != 0)
+
+# box plot for contract duration vs Salary
+box_contract <- ggplot(data = filter_contract_duration, aes(x = ContractDuration, y = AnnualSalaryEUR, fill = ContractDuration)) +
+  geom_boxplot() +
+  labs(x = "Contract Duration", y = "Yearly Brutto Salary (EUR)") +
+  ggtitle("Annual Salary based on Contract Duration") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+print(box_contract)
+
+4.  # Visualizing the impact of seniority level on salary
+
+
+# Remove rows with missing values in Seniority Level and AnnualSalaryEUR
+cleaned_data <- merged_data %>%
+  filter(!is.na(SeniorityLevel), !is.na(AnnualSalaryEUR))
+
+# Verify that there are no missing values in the Seniority Level column
+sum(is.na(cleaned_data$SeniorityLevel))
+
+# Capitalize first letter of each category using str_to_title to remove duplicate same category
+cleaned_data$SeniorityLevel <- str_to_title(cleaned_data$SeniorityLevel)
+
+# Reorder SeniorityLevel based on average AnnualSalaryEUR
+cleaned_data <- cleaned_data %>%
+  mutate(SeniorityLevel = fct_reorder(SeniorityLevel, AnnualSalaryEUR, .fun = mean, .desc = TRUE))
+
+# Bar plot to compare average salary by seniority level
+ggplot(cleaned_data, aes(y = SeniorityLevel, x = AnnualSalaryEUR)) +
+  stat_summary(fun = mean, geom = "bar", fill = "green", color = "black") +
+  labs(title = "Average Salary based on Seniority Level",
+       x = "Average Yearly Salary (EUR)",
+       y = "Seniority Level") +
+  theme_minimal()
+
+
+```
+
+
+
+
+
+
+
+
